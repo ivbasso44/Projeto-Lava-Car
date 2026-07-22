@@ -1,0 +1,25 @@
+camera:
+  ip: "192.168.1.100"
+  user: "admin"
+  password: "admin123"
+  rtsp_port: 554
+  channel: 101
+  stream_type: "main"
+
+edge:
+  api_url: "https://sua-vps.com/api"
+  api_token: "seu-token-aqui"
+  send_interval_seconds: 2
+  min_plate_area: 8000
+
+processing:
+  # Linhas virtuais para detectar direção (coordenadas normalizadas 0-1)
+  line_entry: [0.4, 0.0, 0.4, 1.0]
+  line_exit: [0.6, 0.0, 0.6, 1.0]
+  # Classificação de porte por área da caixa delimitadora em pixels
+  small_max_area: 80000
+  medium_max_area: 180000
+
+storage:
+  local_buffer_path: "./buffer"
+  max_buffer_images: 1000

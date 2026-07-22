@@ -1,0 +1,92 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: lavacar-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  minio:
+    image: minio/minio:latest
+    container_name: lavacar-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  backend:
+    build:
+      context: ./cloud/backend
+      dockerfile: Dockerfile
+    container_name: lavacar-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:admin123@mongo:27017/lavacar?authSource=admin
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: lavacar
+      MINIO_PUBLIC_ENDPOINT: localhost
+      MINIO_PUBLIC_PORT: 9000
+      MINIO_PUBLIC_USE_SSL: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+      - minio
+
+  frontend:
+    build:
+      context: ./cloud/frontend
+      dockerfile: Dockerfile
+    container_name: lavacar-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./cloud/frontend:/app
+      - /app/node_modules
+
+  edge:
+    build:
+      context: ./edge
+      dockerfile: Dockerfile
+    container_name: lavacar-edge
+    restart: unless-stopped
+    environment:
+      EDGE_API_URL: http://backend:3000
+      CAMERA_IP: 192.168.1.100
+      CAMERA_USER: admin
+      CAMERA_PASSWORD: admin123
+      CAMERA_RTSP_PORT: 554
+    depends_on:
+      - backend
+    volumes:
+      - ./edge:/app
+    profiles:
+      - edge
+
+volumes:
+  mongo_data:
+  minio_data:
